@@ -168,7 +168,7 @@ end
 
 # Примеры использования
 
-## Пример 0: Базовое использование слоя
+## Пример 1: Базовое использование слоя
 
 ```matlab
 clear, clc;
@@ -195,7 +195,7 @@ disp(size(Z)); % [10, 100]
 - автоматический расчет количества полиномиальных членов (15 термов);
 - проверку прямого прохода через слой.
 
-## Пример 1: Аппроксимация функции двух переменных
+## Пример 2: Аппроксимация функции двух переменных
 
 Рассмотрим задачу аппроксимации функции:
 
@@ -276,12 +276,12 @@ layers = [
     featureInputLayer(2, 'Name', 'input')   % Входной слой
     
     % Первый sigmaPi-слой
-    sigmaPiLayer(2, 2, 15, 'sigmaPiLayer1')
+    sigmaPiLayer(2, 2, 15, 'sigmaPiLayer1', 'Initialization', 'he')
 
     reluLayer()
     
     % Второй sigmaPi-слой
-    sigmaPiLayer(15, 2, 1, 'sigmaPiLayer2')
+    sigmaPiLayer(15, 2, 1, 'sigmaPiLayer2', 'Initialization', 'he')
     
     regressionLayer('Name', 'output')
 ];
@@ -292,7 +292,8 @@ layers = [
 ```matlab
 % Настройка опций обучения с валидацией
 options = trainingOptions('adam', ...
-    'MaxEpochs', 35, ...
+    'L2Regularization', 0.001, ...
+    'MaxEpochs', 25, ...
     'InitialLearnRate', 0.01, ...
     'LearnRateSchedule', 'piecewise', ...
     'LearnRateDropFactor', 0.1, ...

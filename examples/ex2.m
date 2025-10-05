@@ -63,18 +63,19 @@ layers = [
     featureInputLayer(2, 'Name', 'input')   % Входной слой
     
     % Первый ΣΠ-слой
-    sigmaPiLayer(2, 2, 15, 'sigmaPiLayer1')
+    sigmaPiLayer(2, 2, 15, 'sigmaPiLayer1', 'Initialization', 'he')
 
     reluLayer()
     
     % Второй ΣΠ-слой
-    sigmaPiLayer(15, 1, 1, 'sigmaPiLayer2')
+    sigmaPiLayer(15, 1, 1, 'sigmaPiLayer2', 'Initialization', 'he')
     
     regressionLayer('Name', 'output')
 ];
 
 %% Настройка опций обучения с валидацией
 options = trainingOptions('adam', ...
+    'L2Regularization', 0.001, ...
     'MaxEpochs', 25, ...
     'InitialLearnRate', 0.01, ...
     'LearnRateSchedule', 'piecewise', ...
@@ -85,7 +86,7 @@ options = trainingOptions('adam', ...
     'Verbose', true, ...
     'ExecutionEnvironment', 'cpu', ...
     'ValidationData', {val_data_normalized, val_target_normalized}, ...
-    'ValidationFrequency', 10);       % Останавливаем, если 5 раз подряд валидационная ошибка растет
+    'ValidationFrequency', 10);
 
 %% Обучение сети на нормализованных данных
 net = trainNetwork(train_data_normalized, train_target_normalized, layers, options);

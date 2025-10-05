@@ -33,7 +33,7 @@ $$y = \sigma\left( \sum_{k=1}^{K} w_k \prod_{j \in S_k} x_j^{\alpha_{kj}} \right
 
 $$\alpha_1 + \alpha_2 + \cdots + \alpha_n \leq d$$
 
-Каждый мультииндекс определяет моном:
+Каждый мультииндекс определяет моном (полиномиальный терм):
 
 $$x_1^{\alpha_1} \cdot x_2^{\alpha_2} \cdot \ldots \cdot x_n^{\alpha_n}$$
 
@@ -49,7 +49,7 @@ $$x_1^{\alpha_1} \cdot x_2^{\alpha_2} \cdot \ldots \cdot x_n^{\alpha_n}$$
 ```matlab
 classdef sigmaPiLayer < nnet.layer.Layer
     % Sigma-Pi слой для нейронных сетей
-    % Выход слоя: Z = Weights * (полиномиальные термы)
+    % Выход слоя: Z = Weights * (полиномы)
     
     properties (Learnable)
         Weights % Матрица весов [num_neurons x num_terms]
@@ -67,7 +67,7 @@ classdef sigmaPiLayer < nnet.layer.Layer
         function layer = sigmaPiLayer(numChannels, degree, num_neurons, name)
             % Конструктор слоя
             % Входы:
-            %   numChannels - количество входных каналов (признаков)
+            %   numChannels - количество входов (признаков)
             %   degree - максимальная степень полинома
             %   num_neurons - количество нейронов в слое
             %   name - имя слоя
@@ -97,7 +97,7 @@ classdef sigmaPiLayer < nnet.layer.Layer
             % Выход:
             %   Z - выход слоя [num_neurons, n]
             
-            % Преобразование входа в 2D формат [features, samples]
+            % Преобразование входа формат [features, samples]
             if ndims(X) == 4
                 [h, w, c, n] = size(X);
                 X = reshape(X, [h * w * c, n]);
@@ -180,7 +180,7 @@ addpath('..\customLayer\');
 % Создание слоя с 2 входами, степенью 4 и 10 нейронами
 spl = sigmaPiLayer(2, 4, 10, 'sigmaPi1');
 
-% Проверка параметров (должно быть 15 термов)
+% Проверка параметров (должно быть 15 мономов)
 disp(spl.numTerms); % 15
 disp(size(spl.Weights)); % [10, 15]
 

@@ -49,10 +49,10 @@ $$x_1^{\alpha_1} \cdot x_2^{\alpha_2} \cdot \ldots \cdot x_n^{\alpha_n}$$
 ```matlab
 classdef sigmaPiLayer < nnet.layer.Layer
     % Sigma-Pi слой для нейронных сетей
-    % Выход слоя: Z = Weights * (полиномы)
+    % Выход слоя: Z = Weights x (полиномиальные термы)
     
     properties (Learnable)
-        Weights % Матрица весов [num_neurons x num_terms]
+        Weights % Матрица весов [num_neurons ? num_terms]
     end
     
     properties
@@ -61,20 +61,31 @@ classdef sigmaPiLayer < nnet.layer.Layer
         numChannels   % Количество входных каналов
         multiIndices  % Матрица мультииндексов
         numTerms      % Количество полиномиальных членов
+        initialization_method % Метод инициализации весов
     end
     
     methods
-        function layer = sigmaPiLayer(numChannels, degree, num_neurons, name)
+        function layer = sigmaPiLayer(numChannels, degree, num_neurons, name, varargin)
             % Конструктор слоя
             % Входы:
-            %   numChannels - количество входов (признаков)
+            %   numChannels - количество входных каналов (признаков)
             %   degree - максимальная степень полинома
             %   num_neurons - количество нейронов в слое
             %   name - имя слоя
+            %   varargin - опциональные параметры:
+            %       'Initialization' - метод инициализации:
+            %           'random' (по умолчанию), 'xavier', 'he', 'zeros', 'ones', 'small_random'
             
             layer.Name = name;
             layer.Description = "Sigma-Pi layer (degree " + degree + ") with " + num_neurons + " neurons";
             layer.numChannels = numChannels;
+            
+            % Парсинг дополнительных параметров
+            p = inputParser;
+            addParameter(p, 'Initialization', 'random', @ischar);
+            parse(p, varargin{:});
+            
+            layer.initialization_method = p.Results.Initialization;
             
             % Генерация мультииндексов
             layer.multiIndices = sigmaPiLayer.generateMultiIndices(numChannels, degree);
@@ -82,12 +93,9 @@ classdef sigmaPiLayer < nnet.layer.Layer
             layer.degree = degree;
             layer.num_neurons = num_neurons;
             
-            % Инициализация весов (метод Xavier/Glorot)
-            numIn = layer.numTerms;
-            numOut = layer.num_neurons;
-            variance = 2 / (numIn + numOut);
-            bound = sqrt(3 * variance);
-            layer.Weights = bound * (2 * rand(numOut, numIn, 'single') - 1);
+            % Инициализация весов выбранным методом
+            layer.Weights = sigmaPiLayer.initializeWeights(...
+                layer.num_neurons, layer.numTerms, layer.initialization_method);
         end
         
         function Z = predict(layer, X)
@@ -97,7 +105,7 @@ classdef sigmaPiLayer < nnet.layer.Layer
             % Выход:
             %   Z - выход слоя [num_neurons, n]
             
-            % Преобразование входа формат [features, samples]
+            % Преобразование входа в 2D формат [features, samples]
             if ndims(X) == 4
                 [h, w, c, n] = size(X);
                 X = reshape(X, [h * w * c, n]);
@@ -137,6 +145,54 @@ classdef sigmaPiLayer < nnet.layer.Layer
             totalDegree = sum(indices, 2);
             indices = indices(totalDegree <= maxDegree, :);
         end
+        
+        function weights = initializeWeights(numOut, numIn, method)
+            % Инициализация весов выбранным методом
+            % Входы:
+            %   numOut - количество нейронов (выходной размер)
+            %   numIn - количество термов (входной размер)
+            %   method - метод инициализации
+            
+            switch lower(method)
+                case 'random'
+                    % Случайная инициализация из равномерного распределения [-1, 1] (по умолчанию)
+                    weights = 2 * rand(numOut, numIn, 'single') - 1;
+                    
+                case 'xavier'
+                    % Xavier/Glorot инициализация (для линейных и симметричных активаций)
+                    variance = 2 / (numIn + numOut);
+                    bound = sqrt(3 * variance);
+                    weights = bound * (2 * rand(numOut, numIn, 'single') - 1);
+                    
+                case 'he'
+                    % He инициализация (для ReLU и подобных активаций)
+                    stddev = sqrt(2 / numIn);
+                    weights = stddev * randn(numOut, numIn, 'single');
+                    
+                case 'small_random'
+                    % Маленькие случайные значения
+                    weights = 0.01 * randn(numOut, numIn, 'single');
+                    
+                case 'zeros'
+                    % Нулевая инициализация
+                    weights = zeros(numOut, numIn, 'single');
+                    
+                case 'ones'
+                    % Инициализация единицами
+                    weights = ones(numOut, numIn, 'single');
+                    
+                otherwise
+                    % По умолчанию используем random
+                    weights = 2 * rand(numOut, numIn, 'single') - 1;
+            end
+        end
+    end
+    
+    methods (Static)
+        function availableMethods = getInitializationMethods()
+            % Возвращает список доступных методов инициализации
+            availableMethods = {'random', 'xavier', 'he', 'small_random', 'zeros', 'ones'};
+        end
     end
 end
 ```
@@ -150,12 +206,13 @@ end
 - `numChannels`: количество входных признаков.
 - `multiIndices`: матрица мультииндексов, каждая строка которой определяет один моном.
 - `numTerms`: количество мономов (полиномиальных термов).
+- `initialization_method`: метод инициализации весов.
 
 ### Методы
 **Конструктор:**
 - задает имя и описание слоя;
 - генерирует мультииндексы для всех мономов степени не выше `degree`;
-- инициализирует веса методом Xavier/Glorot.
+- поддерживает выбор метода инициализации весов через опциональный параметр `'Initialization'`. По умолчанию используется случайная инициализация (`'random'`).
 
 **predict:**
 - преобразует вход в двумерный массив `[признаки, примеры]`;
@@ -164,7 +221,14 @@ end
 
 **generateMultiIndices** (статический, приватный):
 - генерирует все комбинации степеней от 0 до `maxDegree` для каждого признака;
-- оставляет только те, у которых сумма степеней (общая степень) не превышает `maxDegree`;
+- оставляет только те, у которых сумма степеней (общая степень) не превышает `maxDegree`.
+
+**initializeWeights** (статический, приватный):
+- реализует различные методы инициализации весов;
+- поддерживает методы: `random`, `xavier`, `he`, `small_random`, `zeros`, `ones`.
+
+**getInitializationMethods** (статический):
+- возвращает список доступных методов инициализации.
 
 # Примеры использования
 
@@ -375,7 +439,14 @@ grid on;
 
 1. **Выбор степени полинома**: Начинайте с малых степеней (2-3), чтобы избежать переобучения и уменьшить вычислительную сложность.
 
-2. **Регуляризация**: Используйте L2-регуляризацию в `trainingOptions`:
+2. **Выбор метода инициализации**:
+   - `random` (по умолчанию) - универсальный метод для большинства случаев;
+   - `xavier` (метод Glorot/Xavier) - оптимален для симметричных функций активации (tanh, sigmoid);
+   - `he` (метод Kaiming He) - рекомендуется для сетей с функцией ReLU её  вариациями;
+   - `small_random` - полезен для избежания насыщения в глубоких сетях;
+   - `zeros`, `ones` - в основном для тестирования и отладки.
+
+3. **Регуляризация**: Используйте L2-регуляризацию в `trainingOptions`:
    ```matlab
    options = trainingOptions('adam', ...
        'L2Regularization', 0.001, ... % Добавляем L2-регуляризацию
@@ -383,10 +454,10 @@ grid on;
    );
    ```
 
-3. **Нормализация данных**: Всегда нормализуйте входные данные, так как полиномиальные члены могут сильно возрастать при больших значениях входов.
+4. **Нормализация данных**: Всегда нормализуйте входные данные, так как полиномиальные члены могут сильно возрастать при больших значениях входов.
 
-4. **Архитектура сети**: Комбинируйте Sigma-Pi слои с обычными полносвязными слоями и слоями активации для баланса между выразительностью и эффективностью.
+5. **Архитектура сети**: Комбинируйте Sigma-Pi слои с обычными полносвязными слоями и слоями активации для баланса между выразительностью и эффективностью.
 
-5. **Интерпретируемость**: Sigma-Pi сети могут быть более интерпретируемы, чем обычные сети, так как каждый вес соответствует вкладу конкретного полиномиального члена.
+6. **Интерпретируемость**: Sigma-Pi сети могут быть более интерпретируемы, чем обычные сети, так как каждый вес соответствует вкладу конкретного полиномиального члена.
 
-6. **Вычислительные ограничения**: Учитывайте быстрый рост числа параметров при увеличении количества входов и степени полинома.
+7. **Вычислительные ограничения**: Учитывайте быстрый рост числа параметров при увеличении количества входов и степени полинома.

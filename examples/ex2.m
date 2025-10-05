@@ -132,20 +132,24 @@ figure;
 subplot(1,3,1);
 surf(x_grid, y_grid, z_true_grid, 'EdgeColor', 'none');
 title('Исходная функция');
-xlabel('x'); ylabel('y'); zlabel('z');
-axis tight;
+xlabel('x'); 
+ylabel('y'); 
+zlabel('z');
 
 subplot(1,3,2);
 surf(x_grid, y_grid, z_pred_grid, 'EdgeColor', 'none');
 title('Аппроксимация нейросетью');
-xlabel('x'); ylabel('y'); zlabel('z');
-axis tight;
+xlabel('x'); 
+ylabel('y'); 
+zlabel('z');
 
 subplot(1,3,3);
 error_grid = abs(z_pred_grid - z_true_grid);
 surf(x_grid, y_grid, error_grid, 'EdgeColor', 'none');
 title('Абсолютная ошибка');
-xlabel('x'); ylabel('y'); zlabel('Ошибка');
+xlabel('x'); 
+ylabel('y'); 
+zlabel('Ошибка');
 colorbar;
 
 % График сравнения предсказаний с истинными значениями

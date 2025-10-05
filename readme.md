@@ -52,7 +52,7 @@ classdef sigmaPiLayer < nnet.layer.Layer
     % Выход слоя: Z = Weights x (полиномиальные термы)
     
     properties (Learnable)
-        Weights % Матрица весов [num_neurons ? num_terms]
+        Weights % Матрица весов [num_neurons x num_terms]
     end
     
     properties

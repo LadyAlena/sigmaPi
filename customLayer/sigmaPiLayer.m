@@ -23,7 +23,7 @@ classdef sigmaPiLayer < nnet.layer.Layer
             layer.degree = degree;
             layer.num_neurons = num_neurons;
             
-            % Инициализация весов
+            % Инициализация весов Glorot/Xaiver
             numIn = layer.numTerms;
             numOut = layer.num_neurons;
             variance = 2 / (numIn + numOut);

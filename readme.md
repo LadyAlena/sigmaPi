@@ -275,12 +275,12 @@ val_target_normalized = (val_target - target_mean) ./ target_std;
 layers = [
     featureInputLayer(2, 'Name', 'input')   % Входной слой
     
-    % Первый ??-слой
+    % Первый sigmaPi-слой
     sigmaPiLayer(2, 2, 15, 'sigmaPiLayer1')
 
     reluLayer()
     
-    % Второй ??-слой
+    % Второй sigmaPi-слой
     sigmaPiLayer(15, 2, 1, 'sigmaPiLayer2')
     
     regressionLayer('Name', 'output')
